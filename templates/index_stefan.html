@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pixel Tower Defense - Menu</title>
+    <!-- Use a pixelated font from Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <!-- Load Tailwind CSS from CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom CSS to apply a pixelated border effect and font */
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #2c3e50; /* Dark blue background */
+        }
+        .pixel-border {
+            border: 4px solid #f1c40f; /* Yellow border */
+            box-shadow: 
+                4px 4px 0 0 #e67e22, /* Orange shadow */
+                8px 8px 0 0 #d35400; /* Darker orange shadow */
+        }
+        .pixel-button {
+            border: 2px solid #ecf0f1; /* Light gray border */
+            box-shadow: 2px 2px 0 0 #95a5a6; /* Gray shadow */
+            transition: all 0.1s ease-in-out;
+            cursor: pointer;
+        }
+        .pixel-button:hover {
+            transform: translate(2px, 2px);
+            box-shadow: 0 0 0 0 #95a5a6;
+        }
+        .pixel-button:active {
+            transform: translate(4px, 4px);
+            box-shadow: none;
+        }
+    </style>
+</head>
+<body class="bg-[#2c3e50] text-[#ecf0f1] flex items-center justify-center min-h-screen p-4">
+
+    <!-- Main menu container with pixel art styling -->
+    <div class="bg-[#34495e] pixel-border p-6 rounded-lg max-w-xl w-full flex flex-col items-center text-center">
+        
+        <!-- Game Title -->
+        <h1 class="text-4xl sm:text-5xl text-[#f1c40f] mb-8 leading-tight">
+            {{game_title}} - Menu
+        </h1>
+
+        <!-- Menu Buttons -->
+        <div class="flex flex-col gap-4 w-3/4 sm:w-1/2">
+            <form action="/game" method="GET">
+                <button type="submit" id="startBtn" class="pixel-button bg-[#2ecc71] text-[#2c3e50] py-4 px-6 rounded-md text-xl sm:text-2xl w-full">
+                    Start Game
+                </button>
+            </form>
+            <form action="/options" method="POST">
+                <button type="submit" id="optionsBtn" class="pixel-button bg-[#3498db] text-[#2c3e50] py-4 px-6 rounded-md text-xl sm:text-2xl w-full">
+                    Options
+                </button>
+            </form>
+            <form action="/credits" method="POST">
+                <button type="submit" id="creditsBtn" class="pixel-button bg-[#e74c3c] text-[#2c3e50] py-4 px-6 rounded-md text-xl sm:text-2xl w-full">
+                    Credits
+                </button>
+            </form>
+        </div>
+
+    <script>
+        window.onload = function() {
+            const forms = document.querySelectorAll('form');
+            
+            forms.forEach(form => {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    try {
+                        const response = await fetch(form.action, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            }
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error('Network response was not ok');
+                        }
+                        
+                        // Handle the response from the server
+                        const result = await response.json();
+                        console.log('Server response:', result);
+                        
+                        // Redirect or handle response based on the server's reply
+                        if (result.redirect) {
+                            window.location.href = result.redirect;
+                        }
+                    } catch (error) {
+                        console.error('Error:', error);
+                        alert('Something went wrong!');
+                    }
+                });
+            });
+        };
+    </script>

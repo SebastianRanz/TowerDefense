@@ -1,0 +1,11 @@
+{
+    "basic": {
+        "name": "Basic Tower",
+        "cost": 50,
+        "damage": 20,
+        "range": 100,
+        "fireRate": 1000,
+        "color": "#8B4513",
+        "description": "A reliable all-around tower"
+    }
+}
