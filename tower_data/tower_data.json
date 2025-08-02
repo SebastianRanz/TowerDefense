@@ -7,5 +7,14 @@
         "fireRate": 1000,
         "color": "#8B4513",
         "description": "A reliable all-around tower"
+    },
+    "holy_c": {
+        "name": "Holy C Turret",
+        "cost": 150,
+        "damage": 50,
+        "range": 150,
+        "fireRate": 800,
+        "color": "#FFD700",
+        "description": "A powerful turret blessed with holy energy"
     }
 }

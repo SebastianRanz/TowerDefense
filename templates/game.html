@@ -112,12 +112,17 @@
     </style>
 </head>
 <body>
-    <div class="gamestate">{{ gamestate }}</span></div>
+    <div class="gamestate" style="display: none;" id="gamestate-data" 
+         data-player-name="{{ gamestate.player_name }}" 
+         data-selected-map="{{ gamestate.selected_map }}">
+        Player: {{ gamestate.player_name }} | Map: {{ gamestate.selected_map }}
+    </div>
     <div class="game-container">
         <div class="game-area">
             <canvas id="gameCanvas" width="800" height="600"></canvas>
         </div>
         <div class="ui-panel">
+            <div class="stat">👤 Player: <span id="player-name">{{ gamestate.player_name }}</span></div>
             <div class="stat">💰 Gold: <span id="gold">100</span></div>
             <div class="stat">❤️ Lives: <span id="lives">20</span></div>
             <div class="stat">🌊 Wave: <span id="wave">1</span></div>
@@ -127,20 +132,18 @@
                 <div>Enemies: <span id="enemiesLeft">0</span></div>
             </div>
             
+            <div class="map-selector">
+                <div style="font-size: 14px; margin-bottom: 10px;">🗺️ Maps:</div>
+                <div id="map-buttons-container">
+                    <!-- Map buttons will be dynamically added here -->
+                </div>
+            </div>
+            
             <div class="tower-shop">
                 <div style="font-size: 14px; margin-bottom: 10px;">🏗️ Towers:</div>
-                <button class="tower-btn" onclick="game.selectTower('basic')">
-                    Basic Tower<br>
-                    💰 50 | 📏 100 | ⚡ 1/s
-                </button>
-                <button class="tower-btn" onclick="game.selectTower('fast')">
-                    Fast Tower<br>
-                    💰 75 | 📏 80 | ⚡ 2/s
-                </button>
-                <button class="tower-btn" onclick="game.selectTower('heavy')">
-                    Heavy Tower<br>
-                    💰 100 | 📏 120 | ⚡ 0.5/s
-                </button>
+                <div id="tower-buttons-container">
+                    <!-- Tower buttons will be dynamically added here -->
+                </div>
             </div>
         </div>
     </div>
@@ -191,9 +194,16 @@
                 this.ctx = this.canvas.getContext('2d');
                 this.ctx.imageSmoothingEnabled = false;
                 
-                // API Configuration
-                this.apiBaseUrl = 'http://localhost:5000/api'; // Change this to your Python API URL
-                this.playerId = 'player1'; // This could be dynamic based on login
+                // Get gamestate from server-side template
+                const gamestateElement = document.getElementById('gamestate-data');
+                this.gamestate = {
+                    player_name: gamestateElement.dataset.playerName,
+                    selected_map: gamestateElement.dataset.selectedMap
+                };
+                
+                // API Configuration - use relative URLs since we're on the same server
+                this.apiBaseUrl = '/api';
+                this.playerId = this.gamestate.player_name;
                 
                 // Game state (will be loaded from API)
                 this.gold = 0;
@@ -241,8 +251,8 @@
                     // Load game data from API
                     await this.loadGameData();
                     
-                    // Initialize game with loaded data
-                    this.loadMap(0);
+                    // Initialize game with loaded data - find the correct map based on gamestate
+                    this.loadSelectedMap();
                     this.setupEventListeners();
                     this.gameRunning = true;
                     this.gameLoop();
@@ -288,17 +298,17 @@
                     this.maps = await mapsResponse.json();
                     
                     // Load player data
-                    const playerResponse = await fetch(`${this.apiBaseUrl}/player/${this.playerId}`);
+                    const playerResponse = await fetch(`${this.apiBaseUrl}/player`);
                     if (!playerResponse.ok) throw new Error('Failed to load player data');
                     this.playerData = await playerResponse.json();
                     
                     // Load tower types
-                    const towerTypesResponse = await fetch(`${this.apiBaseUrl}/tower-types`);
+                    const towerTypesResponse = await fetch(`${this.apiBaseUrl}/towers`);
                     if (!towerTypesResponse.ok) throw new Error('Failed to load tower types');
                     this.towerTypes = await towerTypesResponse.json();
                     
                     // Set initial game state from player data
-                    this.gold = this.playerData.gold || 100;
+                    this.gold = this.playerData.gold || 500;
                     this.lives = this.playerData.lives || 20;
                     this.wave = this.playerData.current_wave || 1;
                     this.score = this.playerData.score || 0;
@@ -365,11 +375,8 @@
             }
             
             updateMapButtons() {
-                const mapSelector = document.querySelector('.map-selector');
-                const mapsContainer = mapSelector.querySelector('.map-selector').nextElementSibling || mapSelector;
-                
-                // Clear existing buttons
-                const existingButtons = mapSelector.querySelectorAll('.map-btn');
+                const mapContainer = document.getElementById('map-buttons-container');
+                const existingButtons = mapContainer.querySelectorAll('.map-btn');
                 existingButtons.forEach(btn => btn.remove());
                 
                 // Create new buttons based on API data
@@ -378,13 +385,13 @@
                     button.className = `map-btn ${index === 0 ? 'active' : ''}`;
                     button.textContent = map.name || `Map ${map.id}`;
                     button.onclick = () => this.loadMap(index);
-                    mapSelector.appendChild(button);
+                    mapContainer.appendChild(button);
                 });
             }
             
             updateTowerButtons() {
-                const towerShop = document.querySelector('.tower-shop');
-                const existingButtons = towerShop.querySelectorAll('.tower-btn');
+                const towerContainer = document.getElementById('tower-buttons-container');
+                const existingButtons = towerContainer.querySelectorAll('.tower-btn');
                 existingButtons.forEach(btn => btn.remove());
                 
                 Object.entries(this.towerTypes).forEach(([type, stats]) => {
@@ -395,7 +402,7 @@
                         💰 ${stats.cost} | 📏 ${stats.range} | ⚡ ${(1000/stats.fireRate).toFixed(1)}/s
                     `;
                     button.onclick = () => this.selectTower(type);
-                    towerShop.appendChild(button);
+                    towerContainer.appendChild(button);
                 });
             }
             
@@ -408,8 +415,8 @@
                         score: this.score
                     };
                     
-                    const response = await fetch(`${this.apiBaseUrl}/player/${this.playerId}`, {
-                        method: 'PUT',
+                    const response = await fetch(`${this.apiBaseUrl}/player`, {
+                        method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
@@ -421,6 +428,19 @@
                     }
                 } catch (error) {
                     console.warn('Error saving player data:', error);
+                }
+            }
+            
+            loadSelectedMap() {
+                // Find the map that matches the gamestate selected_map
+                const selectedMapIndex = this.maps.findIndex(map => map.name === this.gamestate.selected_map);
+                
+                if (selectedMapIndex !== -1) {
+                    console.log(`Loading selected map: ${this.gamestate.selected_map} (index: ${selectedMapIndex})`);
+                    this.loadMap(selectedMapIndex);
+                } else {
+                    console.warn(`Map "${this.gamestate.selected_map}" not found, loading first map`);
+                    this.loadMap(0);
                 }
             }
             
