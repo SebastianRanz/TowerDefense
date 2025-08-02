@@ -307,6 +307,16 @@
                     if (!towerTypesResponse.ok) throw new Error('Failed to load tower types');
                     this.towerTypes = await towerTypesResponse.json();
                     
+                    // Load enemy types
+                    const enemyTypesResponse = await fetch(`${this.apiBaseUrl}/enemies`);
+                    if (!enemyTypesResponse.ok) throw new Error('Failed to load enemy types');
+                    this.enemyTypes = await enemyTypesResponse.json();
+                    
+                    // Load progression data
+                    const progressionResponse = await fetch(`${this.apiBaseUrl}/progression`);
+                    if (!progressionResponse.ok) throw new Error('Failed to load progression');
+                    this.progressionData = await progressionResponse.json();
+                    
                     // Set initial game state from player data
                     this.gold = this.playerData.gold || 500;
                     this.lives = this.playerData.lives || 20;
@@ -528,18 +538,57 @@
             }
             
             spawnEnemy() {
-                const waveMultiplier = 1 + (this.wave - 1) * 0.2;
-                this.enemies.push({
-                    x: this.path[0].x * this.gridSize + this.gridSize / 2,
-                    y: this.path[0].y * this.gridSize + this.gridSize / 2,
-                    pathIndex: 0,
-                    health: Math.floor(50 * waveMultiplier),
-                    maxHealth: Math.floor(50 * waveMultiplier),
-                    speed: 30 + Math.random() * 20,
-                    reward: Math.floor(10 * waveMultiplier),
-                            size: 8 + Math.random() * 6,
-                    color: `hsl(${Math.random() * 60 + 280}, 70%, ${50 + Math.random() * 30}%)`
-                });
+                // Use enemy data from API if available, otherwise fallback
+                if (this.enemyTypes) {
+                    const enemyTypeNames = Object.keys(this.enemyTypes);
+                    const randomType = enemyTypeNames[Math.floor(Math.random() * enemyTypeNames.length)];
+                    const enemyData = this.enemyTypes[randomType];
+                    
+                    // Apply wave scaling
+                    const waveMultiplier = Math.pow(enemyData.scaling.hp || 1.2, this.wave - 1);
+                    const speedMultiplier = Math.pow(enemyData.scaling.speed || 1.0, this.wave - 1);
+                    const rewardMultiplier = Math.pow(enemyData.scaling.reward || 1.1, this.wave - 1);
+                    
+                    this.enemies.push({
+                        x: this.path[0].x * this.gridSize + this.gridSize / 2,
+                        y: this.path[0].y * this.gridSize + this.gridSize / 2,
+                        pathIndex: 0,
+                        type: randomType,
+                        name: enemyData.name,
+                        health: Math.floor(enemyData.baseHp * waveMultiplier),
+                        maxHealth: Math.floor(enemyData.baseHp * waveMultiplier),
+                        speed: enemyData.baseSpeed * speedMultiplier * 30, // Convert to pixels per second
+                        reward: Math.floor(enemyData.baseReward * rewardMultiplier),
+                        size: 8 + Math.random() * 6,
+                        color: this.getEnemyColor(randomType),
+                        resistance: enemyData.resistance,
+                        attributes: enemyData.attributes || {}
+                    });
+                } else {
+                    // Fallback to old system
+                    const waveMultiplier = 1 + (this.wave - 1) * 0.2;
+                    this.enemies.push({
+                        x: this.path[0].x * this.gridSize + this.gridSize / 2,
+                        y: this.path[0].y * this.gridSize + this.gridSize / 2,
+                        pathIndex: 0,
+                        health: Math.floor(50 * waveMultiplier),
+                        maxHealth: Math.floor(50 * waveMultiplier),
+                        speed: 30 + Math.random() * 20,
+                        reward: Math.floor(10 * waveMultiplier),
+                        size: 8 + Math.random() * 6,
+                        color: `hsl(${Math.random() * 60 + 280}, 70%, ${50 + Math.random() * 30}%)`
+                    });
+                }
+            }
+            
+            getEnemyColor(enemyType) {
+                const colorMap = {
+                    'normal': '#8B4513',
+                    'fast': '#FF6347', 
+                    'tank': '#4682B4',
+                    'boss': '#8B0000'
+                };
+                return colorMap[enemyType] || `hsl(${Math.random() * 60 + 280}, 70%, ${50 + Math.random() * 30}%)`;
             }
             
             updateEnemies(deltaTime) {

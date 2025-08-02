@@ -39,7 +39,7 @@ class User(UserMixin, db.Model):
     def add_xp(self, amount):
         """Add XP and handle level ups"""
         self.xp += amount
-        with open('game_data/progression.json', 'r') as f:
+        with open('config/progression.json', 'r') as f:
             progression = json.load(f)
         
         # Check for level up
@@ -249,7 +249,7 @@ def progression():
     """Handle progression-related requests"""
     if request.method == 'GET':
         # Load progression template
-        with open('game_data/progression.json', 'r') as f:
+        with open('config/progression.json', 'r') as f:
             progression_data = json.load(f)
         
         # Get current level data
@@ -293,6 +293,14 @@ def get_towers():
     with open('tower_data/tower_data.json', 'r') as f:
         tower_data = json.load(f)
     return jsonify(tower_data)
+
+
+@app.route('/api/enemies', methods=['GET'])
+def get_enemies():
+    """Returns the enemy data from a JSON file."""
+    with open('enemy_data/enemy_data.json', 'r') as f:
+        enemy_data = json.load(f)
+    return jsonify(enemy_data)
 
 
 if __name__ == '__main__':

@@ -4,7 +4,11 @@
         "cost": 50,
         "damage": 20,
         "range": 100,
+        "size": 1.0,
         "fireRate": 1000,
+        "special_ability": "none",
+        "sprite_id": "basic_tower",
+        "projectile_id": "basic_projectile",
         "color": "#8B4513",
         "description": "A reliable all-around tower"
     },
@@ -13,7 +17,11 @@
         "cost": 150,
         "damage": 50,
         "range": 150,
+        "size": 1.5,
         "fireRate": 800,
+        "special_ability": "none",
+        "sprite_id": "holy_c_turret",
+        "projectile_id": "basic_projectile",
         "color": "#FFD700",
         "description": "A powerful turret blessed with holy energy"
     }

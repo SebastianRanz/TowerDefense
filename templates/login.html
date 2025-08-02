@@ -37,7 +37,7 @@
             margin: 30px 0;
         }
         
-        input[type="text"] {
+        input[type="text"], input[type="password"] {
             padding: 15px;
             font-size: 18px;
             margin: 15px 0;
@@ -50,14 +50,39 @@
             text-align: center;
         }
         
-        input[type="text"]:focus {
+        input[type="text"]:focus, input[type="password"]:focus {
             outline: none;
             border-color: #FFD700;
             background: #4a5d4a;
         }
         
-        input[type="text"]::placeholder {
+        input[type="text"]::placeholder, input[type="password"]::placeholder {
             color: #aaa;
+        }
+        
+        .flashes {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 20px 0;
+        }
+        
+        .flashes li {
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .flashes .error {
+            background-color: #ff6b6b;
+            color: #330000;
+            border: 1px solid #c04040;
+        }
+        
+        .flashes .success {
+            background-color: #6bff6b;
+            color: #003300;
+            border: 1px solid #40c040;
         }
         
         button {
@@ -107,12 +132,11 @@
 
         <form action="{{ url_for('login') }}" method="POST" class="login-form">
             <div>
-                <input type="text" id="username" name="username" required minlength="2" maxlength="20"><br><br>
-                <input type="password" id="password" name="password" required><br><br>
+                <input type="text" id="username" name="username" placeholder="Username" required minlength="2" maxlength="20"><br><br>
+                <input type="password" id="password" name="password" placeholder="Password" required><br><br>
             </div>
             <div>
-                <button type="submit" value="Login"></button>
-
+                <button type="submit">Login</button>
             </div>
         </form>
         
