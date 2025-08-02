@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Map Generator - Tower Defense</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #2a3d2a;
+            font-family: 'Courier New', monospace;
+            color: #fff;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
+        
+        .controls-panel {
+            background: #3a4d3a;
+            padding: 20px;
+            border-radius: 10px;
+            height: fit-content;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        
+        .preview-panel {
+            background: #4a5d4a;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #FFD700;
+            font-size: 28px;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .control-group {
+            margin-bottom: 20px;
+        }
+        
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #FFD700;
+            font-weight: bold;
+        }
+        
+        .control-group select,
+        .control-group input[type="text"],
+        .control-group input[type="range"] {
+            width: 100%;
+            padding: 8px;
+            background: #2a3d2a;
+            border: 2px solid #5a7d5a;
+            border-radius: 5px;
+            color: #fff;
+            font-family: inherit;
+        }
+        
+        .control-group select:focus,
+        .control-group input:focus {
+            outline: none;
+            border-color: #FFD700;
+        }
+        
+        .range-display {
+            text-align: center;
+            margin-top: 5px;
+            color: #ccc;
+        }
+        
+        .theme-preview {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .theme-option {
+            padding: 10px;
+            border: 2px solid #5a7d5a;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+            font-size: 12px;
+        }
+        
+        .theme-option:hover {
+            border-color: #FFD700;
+        }
+        
+        .theme-option.selected {
+            border-color: #FFD700;
+            background: rgba(255, 215, 0, 0.2);
+        }
+        
+        .generate-btn {
+            width: 100%;
+            padding: 15px;
+            background: #5a7d5a;
+            border: 2px solid #4a6d4a;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 16px;
+            font-weight: bold;
+            margin: 10px 0;
+            transition: all 0.3s;
+        }
+        
+        .generate-btn:hover {
+            background: #6a8d6a;
+            border-color: #FFD700;
+        }
+        
+        .generate-btn:disabled {
+            background: #3a4d3a;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        .save-btn {
+            background: #4682B4;
+            border-color: #4169E1;
+        }
+        
+        .save-btn:hover {
+            background: #5a92c4;
+        }
+        
+        .back-btn {
+            background: #8B4513;
+            border-color: #A0522D;
+        }
+        
+        .back-btn:hover {
+            background: #9b5523;
+        }
+        
+        .edit-btn {
+            background: #9932CC;
+            border-color: #8A2BE2;
+        }
+        
+        .edit-btn:hover {
+            background: #a942dc;
+        }
+        
+        .load-btn {
+            background: #FF8C00;
+            border-color: #FF7F50;
+        }
+        
+        .load-btn:hover {
+            background: #FFA500;
+        }
+        
+        .edit-tools {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .tool-btn {
+            padding: 8px;
+            background: #2a3d2a;
+            border: 2px solid #5a7d5a;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 12px;
+            transition: all 0.3s;
+        }
+        
+        .tool-btn:hover {
+            background: #3a4d3a;
+            border-color: #FFD700;
+        }
+        
+        .tool-btn.active {
+            background: #FFD700;
+            color: #2a3d2a;
+            border-color: #FFD700;
+        }
+        
+        .clear-all-btn {
+            background: #DC143C !important;
+            border-color: #B22222 !important;
+        }
+        
+        .clear-all-btn:hover {
+            background: #FF1744 !important;
+            border-color: #DC143C !important;
+        }
+        
+        .clear-all-btn.active {
+            background: #FF1744 !important;
+            color: white !important;
+            border-color: #DC143C !important;
+        }
+        
+        .edit-info {
+            margin-top: 15px;
+            padding: 10px;
+            background: #2a3d2a;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #ccc;
+        }
+        
+        .canvas-container {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .preview-canvas {
+            cursor: crosshair;
+        }
+        
+        .preview-canvas.editing {
+            cursor: pointer;
+        }
+        
+        .preview-canvas {
+            border: 3px solid #1a2d1a;
+            border-radius: 5px;
+            background: #6b8e6b;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+            width: 100%;
+            max-width: 800px;
+            height: 600px;
+        }
+        
+        .map-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #3a4d3a;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .map-info h3 {
+            color: #FFD700;
+            margin: 0 0 10px 0;
+        }
+        
+        .status-message {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            text-align: center;
+        }
+        
+        .status-success {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid #00ff00;
+            color: #00ff00;
+        }
+        
+        .status-error {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid #ff0000;
+            color: #ff0000;
+        }
+        
+        .status-loading {
+            background: rgba(255, 215, 0, 0.2);
+            border: 1px solid #FFD700;
+            color: #FFD700;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #FFD700;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Modal Styles */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal-content {
+            background-color: #3a4d3a;
+            margin: 5% auto;
+            padding: 0;
+            border: 2px solid #FFD700;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 900px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+        }
+        
+        .modal-header {
+            background: #2a3d2a;
+            padding: 20px;
+            border-bottom: 2px solid #5a7d5a;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h2 {
+            color: #FFD700;
+            margin: 0;
+            font-size: 24px;
+        }
+        
+        .close {
+            color: #aaa;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.3s;
+        }
+        
+        .close:hover {
+            color: #FFD700;
+        }
+        
+        .modal-body {
+            padding: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        
+        .map-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+        }
+        
+        .map-item {
+            background: #2a3d2a;
+            border: 2px solid #5a7d5a;
+            border-radius: 8px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .map-item:hover {
+            border-color: #FFD700;
+            background: #3a4d3a;
+        }
+        
+        .map-item h3 {
+            color: #FFD700;
+            margin: 0 0 10px 0;
+            font-size: 16px;
+        }
+        
+        .map-item .map-details {
+            font-size: 12px;
+            color: #ccc;
+            line-height: 1.4;
+        }
+        
+        .map-item .map-preview {
+            width: 100%;
+            height: 120px;
+            background: #4a5d4a;
+            border: 1px solid #5a7d5a;
+            border-radius: 4px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #888;
+            font-size: 12px;
+        }
+        
+        .load-map-btn {
+            width: 100%;
+            padding: 8px;
+            background: #FF8C00;
+            border: 2px solid #FF7F50;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+        
+        .load-map-btn:hover {
+            background: #FFA500;
+        }
+        
+        .no-maps {
+            text-align: center;
+            color: #888;
+            font-style: italic;
+            padding: 40px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="controls-panel">
+            <div class="header">
+                <h1>🗺️ Map Generator</h1>
+                <p>Welcome, {{ username }}!</p>
+            </div>
+            
+            <div class="control-group">
+                <label for="mapName">Map Name:</label>
+                <input type="text" id="mapName" placeholder="Enter custom name (optional)">
+            </div>
+            
+            <div class="control-group">
+                <label for="difficulty">Difficulty:</label>
+                <select id="difficulty">
+                    <option value="easy">Easy</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="hard">Hard</option>
+                    <option value="nightmare">Nightmare</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="size">Map Size:</label>
+                <select id="size">
+                    <option value="small">Small (25x20)</option>
+                    <option value="medium" selected>Medium (32x24)</option>
+                    <option value="large">Large (40x30)</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label for="complexity">Path Complexity:</label>
+                <select id="complexity">
+                    <option value="linear">Linear</option>
+                    <option value="curved" selected>Curved</option>
+                    <option value="maze">Maze</option>
+                    <option value="spiral">Spiral</option>
+                </select>
+            </div>
+            
+            <div class="control-group">
+                <label>Theme:</label>
+                <div class="theme-preview" id="themeOptions">
+                    <!-- Theme options will be loaded here -->
+                </div>
+            </div>
+            
+            <button class="generate-btn load-btn" id="loadBtn">📁 Load Map</button>
+            <button class="generate-btn" id="generateBtn">🎲 Generate Map</button>
+            <button class="generate-btn edit-btn" id="editBtn" disabled>✏️ Edit Mode</button>
+            <button class="generate-btn save-btn" id="saveBtn" disabled>💾 Save Map</button>
+            <button class="generate-btn back-btn" onclick="window.location.href='/'">🏠 Back to Menu</button>
+            
+            <!-- Edit Tools Panel (hidden by default) -->
+            <div id="editToolsPanel" style="display: none;">
+                <div class="control-group">
+                    <label>Edit Tools:</label>
+                    <div class="edit-tools">
+                        <button class="tool-btn" id="pathTool" data-tool="path">🛤️ Path</button>
+                        <button class="tool-btn" id="obstacleTool" data-tool="obstacle">🌳 Obstacle</button>
+                        <button class="tool-btn" id="eraserTool" data-tool="eraser">🗑️ Eraser</button>
+                        <button class="tool-btn" id="startTool" data-tool="start">🟢 Start</button>
+                        <button class="tool-btn" id="endTool" data-tool="end">🔴 End</button>
+                        <button class="tool-btn clear-all-btn" id="clearAllTool" data-tool="clear-all">🧹 Clear All</button>
+                    </div>
+                </div>
+                
+                <div class="control-group" id="obstacleTypePanel" style="display: none;">
+                    <label>Obstacle Type:</label>
+                    <select id="obstacleType">
+                        <option value="tree">🌳 Tree</option>
+                        <option value="rock">🪨 Rock</option>
+                        <option value="bush">🌿 Bush</option>
+                        <option value="water">💧 Water</option>
+                    </select>
+                </div>
+                
+                <div class="edit-info">
+                    <p id="editInstructions">Select a tool and click on the map to edit</p>
+                </div>
+            </div>
+            
+            <div id="statusMessage"></div>
+        </div>
+        
+        <!-- Map Selection Modal -->
+        <div id="mapSelectionModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>📁 Load Saved Map</h2>
+                    <span class="close" id="closeModal">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div id="mapList" class="map-list">
+                        <!-- Maps will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="preview-panel">
+            <canvas id="previewCanvas" class="preview-canvas" width="800" height="600"></canvas>
+            
+            <div class="map-info" id="mapInfo" style="display: none;">
+                <h3>Generated Map Info</h3>
+                <div id="mapDetails"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class MapGenerator {
+            constructor() {
+                this.canvas = document.getElementById('previewCanvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.ctx.imageSmoothingEnabled = false;
+                
+                this.currentMap = null;
+                this.selectedTheme = 'forest';
+                this.themes = {};
+                
+                this.gridSize = 20; // Smaller grid for preview
+                
+                // Edit mode properties
+                this.editMode = false;
+                this.selectedTool = null;
+                this.editHistory = [];
+                
+                this.init();
+            }
+            
+            async init() {
+                await this.loadGeneratorOptions();
+                this.setupEventListeners();
+                this.drawEmptyCanvas();
+            }
+            
+            async loadGeneratorOptions() {
+                try {
+                    const response = await fetch('/api/generator-options');
+                    const options = await response.json();
+                    
+                    this.themes = options.themes;
+                    this.setupThemeOptions();
+                    
+                } catch (error) {
+                    console.error('Failed to load generator options:', error);
+                    this.showStatus('Failed to load generator options', 'error');
+                }
+            }
+            
+            setupThemeOptions() {
+                const container = document.getElementById('themeOptions');
+                container.innerHTML = '';
+                
+                Object.entries(this.themes).forEach(([themeId, theme]) => {
+                    const option = document.createElement('div');
+                    option.className = `theme-option ${themeId === this.selectedTheme ? 'selected' : ''}`;
+                    option.style.backgroundColor = theme.colors.bg;
+                    option.style.color = theme.colors.path;
+                    option.textContent = theme.name;
+                    option.onclick = () => this.selectTheme(themeId);
+                    container.appendChild(option);
+                });
+            }
+            
+            selectTheme(themeId) {
+                this.selectedTheme = themeId;
+                document.querySelectorAll('.theme-option').forEach(option => {
+                    option.classList.remove('selected');
+                });
+                
+                // Find and select the correct theme option
+                const themeOptions = document.querySelectorAll('.theme-option');
+                themeOptions.forEach(option => {
+                    if (option.textContent === this.themes[themeId]?.name) {
+                        option.classList.add('selected');
+                    }
+                });
+                
+                // Redraw preview if map exists
+                if (this.currentMap) {
+                    this.drawMapPreview(this.currentMap);
+                }
+            }
+            
+            setupEventListeners() {
+                document.getElementById('generateBtn').onclick = () => this.generateMap();
+                document.getElementById('loadBtn').onclick = () => this.showLoadMapModal();
+                document.getElementById('editBtn').onclick = () => this.toggleEditMode();
+                document.getElementById('saveBtn').onclick = () => this.saveMap();
+                
+                // Modal events
+                document.getElementById('closeModal').onclick = () => this.hideLoadMapModal();
+                document.getElementById('mapSelectionModal').onclick = (e) => {
+                    if (e.target.id === 'mapSelectionModal') {
+                        this.hideLoadMapModal();
+                    }
+                };
+                
+                // Canvas click event for editing
+                this.canvas.onclick = (e) => this.handleCanvasClick(e);
+                
+                // Tool selection events
+                document.querySelectorAll('.tool-btn').forEach(btn => {
+                    btn.onclick = () => this.selectTool(btn.dataset.tool);
+                });
+                
+                // Obstacle type change
+                document.getElementById('obstacleType').onchange = () => this.updateEditInstructions();
+            }
+            
+            async generateMap() {
+                const generateBtn = document.getElementById('generateBtn');
+                const saveBtn = document.getElementById('saveBtn');
+                
+                generateBtn.disabled = true;
+                saveBtn.disabled = true;
+                
+                this.showStatus('Generating map...', 'loading');
+                
+                try {
+                    const params = {
+                        name: document.getElementById('mapName').value || null,
+                        difficulty: document.getElementById('difficulty').value,
+                        size: document.getElementById('size').value,
+                        complexity: document.getElementById('complexity').value,
+                        theme: this.selectedTheme
+                    };
+                    
+                    const response = await fetch('/api/generate-map', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(params)
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.status === 'success') {
+                        this.currentMap = result.map;
+                        this.drawMapPreview(this.currentMap);
+                        this.showMapInfo(this.currentMap);
+                        this.showStatus('Map generated successfully!', 'success');
+                        saveBtn.disabled = false;
+                        document.getElementById('editBtn').disabled = false;
+                    } else {
+                        this.showStatus(`Error: ${result.message}`, 'error');
+                    }
+                    
+                } catch (error) {
+                    console.error('Generation error:', error);
+                    this.showStatus('Failed to generate map', 'error');
+                }
+                
+                generateBtn.disabled = false;
+            }
+            
+            async saveMap() {
+                if (!this.currentMap) return;
+                
+                const saveBtn = document.getElementById('saveBtn');
+                saveBtn.disabled = true;
+                
+                this.showStatus('Saving map...', 'loading');
+                
+                try {
+                    const response = await fetch('/api/save-custom-map', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ map: this.currentMap })
+                    });
+                    
+                    const result = await response.json();
+                    
+                    if (result.status === 'success') {
+                        this.showStatus('Map saved successfully!', 'success');
+                    } else {
+                        this.showStatus(`Error: ${result.message}`, 'error');
+                        saveBtn.disabled = false;
+                    }
+                    
+                } catch (error) {
+                    console.error('Save error:', error);
+                    this.showStatus('Failed to save map', 'error');
+                    saveBtn.disabled = false;
+                }
+            }
+            
+            drawEmptyCanvas() {
+                this.ctx.fillStyle = '#6b8e6b';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw grid
+                this.ctx.strokeStyle = '#5a7d5a';
+                this.ctx.lineWidth = 1;
+                for (let x = 0; x <= this.canvas.width; x += this.gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, 0);
+                    this.ctx.lineTo(x, this.canvas.height);
+                    this.ctx.stroke();
+                }
+                for (let y = 0; y <= this.canvas.height; y += this.gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y);
+                    this.ctx.lineTo(this.canvas.width, y);
+                    this.ctx.stroke();
+                }
+                
+                // Draw placeholder text
+                this.ctx.fillStyle = '#fff';
+                this.ctx.font = '24px Courier New';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText('Click "Generate Map" to create a new map', 
+                                this.canvas.width / 2, this.canvas.height / 2);
+            }
+            
+            drawMapPreview(map) {
+                const theme = this.themes[map.theme] || this.themes.forest;
+                
+                // Clear canvas with theme background
+                this.ctx.fillStyle = theme.colors.bg;
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // Draw grid
+                this.ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                this.ctx.lineWidth = 1;
+                for (let x = 0; x <= this.canvas.width; x += this.gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, 0);
+                    this.ctx.lineTo(x, this.canvas.height);
+                    this.ctx.stroke();
+                }
+                for (let y = 0; y <= this.canvas.height; y += this.gridSize) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, y);
+                    this.ctx.lineTo(this.canvas.width, y);
+                    this.ctx.stroke();
+                }
+                
+                // Draw path
+                this.ctx.strokeStyle = theme.colors.path;
+                this.ctx.lineWidth = this.gridSize * 0.6;
+                this.ctx.lineCap = 'round';
+                this.ctx.lineJoin = 'round';
+                this.ctx.beginPath();
+                
+                const allPath = [map.start, ...map.path];
+                for (let i = 0; i < allPath.length; i++) {
+                    const point = allPath[i];
+                    const x = point.x * this.gridSize + this.gridSize / 2;
+                    const y = point.y * this.gridSize + this.gridSize / 2;
+                    
+                    if (i === 0) {
+                        this.ctx.moveTo(x, y);
+                    } else {
+                        this.ctx.lineTo(x, y);
+                    }
+                }
+                this.ctx.stroke();
+                
+                // Draw start point
+                const startX = map.start.x * this.gridSize + this.gridSize / 2;
+                const startY = map.start.y * this.gridSize + this.gridSize / 2;
+                this.ctx.fillStyle = '#00ff00';
+                this.ctx.beginPath();
+                this.ctx.arc(startX, startY, 8, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                // Draw end point
+                const endPoint = map.path[map.path.length - 1];
+                const endX = endPoint.x * this.gridSize + this.gridSize / 2;
+                const endY = endPoint.y * this.gridSize + this.gridSize / 2;
+                this.ctx.fillStyle = '#ff0000';
+                this.ctx.beginPath();
+                this.ctx.arc(endX, endY, 8, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                // Draw obstacles
+                for (let obstacle of map.obstacles) {
+                    const x = obstacle.x * this.gridSize + 2;
+                    const y = obstacle.y * this.gridSize + 2;
+                    const size = this.gridSize - 4;
+                    
+                    // Color based on obstacle type
+                    const obstacleColors = {
+                        tree: '#228B22', bush: '#32CD32', water: '#4169E1', rock: '#696969',
+                        cactus: '#9ACD32', oasis: '#00CED1', dune: '#F4A460',
+                        ice: '#B0E0E6', snowman: '#FFFAFA', frozen_tree: '#2F4F4F',
+                        volcano_rock: '#8B0000', lava_pool: '#FF4500', obsidian: '#36454F'
+                    };
+                    
+                    this.ctx.fillStyle = obstacleColors[obstacle.attributes.type] || '#8B4513';
+                    this.ctx.fillRect(x, y, size, size);
+                }
+            }
+            
+            showMapInfo(map) {
+                const mapInfo = document.getElementById('mapInfo');
+                const mapDetails = document.getElementById('mapDetails');
+                
+                mapDetails.innerHTML = `
+                    <p><strong>Name:</strong> ${map.name}</p>
+                    <p><strong>Theme:</strong> ${this.themes[map.theme].name}</p>
+                    <p><strong>Difficulty:</strong> ${map.difficulty.charAt(0).toUpperCase() + map.difficulty.slice(1)}</p>
+                    <p><strong>Size:</strong> ${map.dimensions.width}x${map.dimensions.height}</p>
+                    <p><strong>Complexity:</strong> ${map.complexity.charAt(0).toUpperCase() + map.complexity.slice(1)}</p>
+                    <p><strong>Path Length:</strong> ${map.path.length + 1} points</p>
+                    <p><strong>Obstacles:</strong> ${map.obstacles.length}</p>
+                    <p><strong>Map ID:</strong> ${map.id}</p>
+                `;
+                
+                mapInfo.style.display = 'block';
+            }
+            
+            toggleEditMode() {
+                if (!this.currentMap) return;
+                
+                this.editMode = !this.editMode;
+                const editBtn = document.getElementById('editBtn');
+                const editPanel = document.getElementById('editToolsPanel');
+                
+                if (this.editMode) {
+                    editBtn.textContent = '🔒 Exit Edit';
+                    editBtn.style.background = '#DC143C';
+                    editPanel.style.display = 'block';
+                    this.canvas.classList.add('editing');
+                    this.showStatus('Edit mode activated. Select a tool and click on the map.', 'success');
+                } else {
+                    editBtn.textContent = '✏️ Edit Mode';
+                    editBtn.style.background = '#9932CC';
+                    editPanel.style.display = 'none';
+                    this.canvas.classList.remove('editing');
+                    this.selectedTool = null;
+                    document.querySelectorAll('.tool-btn').forEach(btn => btn.classList.remove('active'));
+                    this.showStatus('Edit mode deactivated.', 'success');
+                }
+            }
+            
+            selectTool(tool) {
+                if (!this.editMode) return;
+                
+                // Handle clear-all as a special action, not a persistent tool
+                if (tool === 'clear-all') {
+                    this.clearAllElements();
+                    return;
+                }
+                
+                this.selectedTool = tool;
+                
+                // Update tool button states
+                document.querySelectorAll('.tool-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                document.querySelector(`[data-tool="${tool}"]`).classList.add('active');
+                
+                // Show/hide obstacle type panel
+                const obstaclePanel = document.getElementById('obstacleTypePanel');
+                if (tool === 'obstacle') {
+                    obstaclePanel.style.display = 'block';
+                } else {
+                    obstaclePanel.style.display = 'none';
+                }
+                
+                this.updateEditInstructions();
+            }
+            
+            updateEditInstructions() {
+                const instructions = document.getElementById('editInstructions');
+                if (!this.selectedTool) {
+                    instructions.textContent = 'Select a tool and click on the map to edit';
+                    return;
+                }
+                
+                const toolInstructions = {
+                    path: 'Click to add path points. Connect to existing path.',
+                    obstacle: `Click to place ${document.getElementById('obstacleType').value} obstacles`,
+                    eraser: 'Click to remove obstacles or path points (except start point)',
+                    start: 'Click to move the start point',
+                    end: 'Click to move the end point'
+                };
+                
+                instructions.textContent = toolInstructions[this.selectedTool] || 'Click on the map to edit';
+            }
+            
+            handleCanvasClick(event) {
+                if (!this.editMode || !this.selectedTool || !this.currentMap) return;
+                
+                const rect = this.canvas.getBoundingClientRect();
+                const x = event.clientX - rect.left;
+                const y = event.clientY - rect.top;
+                
+                // Convert to grid coordinates
+                const gridX = Math.floor(x / this.gridSize);
+                const gridY = Math.floor(y / this.gridSize);
+                
+                // Save current state for undo
+                this.saveEditState();
+                
+                switch (this.selectedTool) {
+                    case 'obstacle':
+                        this.placeObstacle(gridX, gridY);
+                        break;
+                    case 'eraser':
+                        this.eraseElement(gridX, gridY);
+                        break;
+                    case 'start':
+                        this.moveStartPoint(gridX, gridY);
+                        break;
+                    case 'end':
+                        this.moveEndPoint(gridX, gridY);
+                        break;
+                    case 'path':
+                        this.addPathPoint(gridX, gridY);
+                        break;
+                }
+                
+                // Redraw map and update info
+                this.drawMapPreview(this.currentMap);
+                this.showMapInfo(this.currentMap);
+            }
+            
+            placeObstacle(gridX, gridY) {
+                // Check if position is valid (not on path, start, or end)
+                if (this.isPositionOccupied(gridX, gridY)) {
+                    this.showStatus('Cannot place obstacle here!', 'error');
+                    return;
+                }
+                
+                const obstacleType = document.getElementById('obstacleType').value;
+                const newObstacle = {
+                    x: gridX,
+                    y: gridY,
+                    attributes: {
+                        type: obstacleType,
+                        blocking: true
+                    }
+                };
+                
+                this.currentMap.obstacles.push(newObstacle);
+                this.showStatus(`${obstacleType} placed!`, 'success');
+            }
+            
+            eraseElement(gridX, gridY) {
+                let somethingRemoved = false;
+                
+                // First, try to remove path points
+                const pathRemoved = this.removePathPoint(gridX, gridY);
+                if (pathRemoved) {
+                    somethingRemoved = true;
+                }
+                
+                // Then, try to remove obstacles at this position
+                const initialObstacleCount = this.currentMap.obstacles.length;
+                this.currentMap.obstacles = this.currentMap.obstacles.filter(
+                    obstacle => !(obstacle.x === gridX && obstacle.y === gridY)
+                );
+                
+                if (this.currentMap.obstacles.length < initialObstacleCount) {
+                    somethingRemoved = true;
+                    if (pathRemoved) {
+                        this.showStatus('Path point and obstacle removed!', 'success');
+                    } else {
+                        this.showStatus('Obstacle removed!', 'success');
+                    }
+                } else if (pathRemoved) {
+                    this.showStatus('Path point removed!', 'success');
+                } else {
+                    this.showStatus('Nothing to erase here.', 'error');
+                }
+            }
+            
+            moveStartPoint(gridX, gridY) {
+                if (this.isPositionOccupied(gridX, gridY, true)) {
+                    this.showStatus('Cannot place start point here!', 'error');
+                    return;
+                }
+                
+                this.currentMap.start = { x: gridX, y: gridY };
+                this.showStatus('Start point moved!', 'success');
+            }
+            
+            moveEndPoint(gridX, gridY) {
+                if (this.isPositionOccupied(gridX, gridY, true)) {
+                    this.showStatus('Cannot place end point here!', 'error');
+                    return;
+                }
+                
+                // Move the last path point
+                if (this.currentMap.path.length > 0) {
+                    this.currentMap.path[this.currentMap.path.length - 1] = { x: gridX, y: gridY };
+                    this.showStatus('End point moved!', 'success');
+                }
+            }
+            
+            addPathPoint(gridX, gridY) {
+                if (this.isPositionOccupied(gridX, gridY, true)) {
+                    this.showStatus('Cannot place path here!', 'error');
+                    return;
+                }
+                
+                // Add to path
+                this.currentMap.path.push({ x: gridX, y: gridY });
+                this.showStatus('Path point added!', 'success');
+            }
+            
+            isPositionOccupied(gridX, gridY, excludeObstacles = false) {
+                // Check start point
+                if (this.currentMap.start.x === gridX && this.currentMap.start.y === gridY) {
+                    return true;
+                }
+                
+                // Check path points
+                for (let point of this.currentMap.path) {
+                    if (point.x === gridX && point.y === gridY) {
+                        return true;
+                    }
+                }
+                
+                // Check obstacles (unless excluded)
+                if (!excludeObstacles) {
+                    for (let obstacle of this.currentMap.obstacles) {
+                        if (obstacle.x === gridX && obstacle.y === gridY) {
+                            return true;
+                        }
+                    }
+                }
+                
+                return false;
+            }
+            
+            removePathPoint(gridX, gridY) {
+                // Check if this is the start point (cannot be removed)
+                if (this.currentMap.start.x === gridX && this.currentMap.start.y === gridY) {
+                    this.showStatus('Cannot remove start point! Use the start tool to move it.', 'error');
+                    return false;
+                }
+                
+                // Find and remove path point at this position
+                const initialPathLength = this.currentMap.path.length;
+                this.currentMap.path = this.currentMap.path.filter(
+                    point => !(point.x === gridX && point.y === gridY)
+                );
+                
+                // Check if we removed a path point
+                if (this.currentMap.path.length < initialPathLength) {
+                    // Ensure we don't remove all path points (need at least 1 for end point)
+                    if (this.currentMap.path.length === 0) {
+                        // Restore the removed point
+                        this.currentMap.path.push({ x: gridX, y: gridY });
+                        this.showStatus('Cannot remove the last path point!', 'error');
+                        return false;
+                    }
+                    return true;
+                }
+                
+                return false;
+            }
+            
+            clearAllElements() {
+                if (!this.currentMap) return;
+                
+                // Show confirmation dialog
+                const confirmed = confirm(
+                    'Are you sure you want to clear all obstacles and path points?\n\n' +
+                    'This will remove:\n' +
+                    `• All ${this.currentMap.obstacles.length} obstacles\n` +
+                    `• All ${this.currentMap.path.length} path points (except start)\n\n` +
+                    'This action cannot be undone!'
+                );
+                
+                if (!confirmed) return;
+                
+                // Save current state for potential undo
+                this.saveEditState();
+                
+                // Clear all obstacles
+                this.currentMap.obstacles = [];
+                
+                // Reset path to just the start point (keep start, remove all path points)
+                this.currentMap.path = [];
+                
+                // Redraw map and update info
+                this.drawMapPreview(this.currentMap);
+                this.showMapInfo(this.currentMap);
+                
+                this.showStatus('All elements cleared! Only start point remains.', 'success');
+            }
+            
+            saveEditState() {
+                // Save current map state for undo functionality
+                this.editHistory.push(JSON.parse(JSON.stringify(this.currentMap)));
+                
+                // Limit history size
+                if (this.editHistory.length > 20) {
+                    this.editHistory.shift();
+                }
+            }
+            
+            async showLoadMapModal() {
+                const modal = document.getElementById('mapSelectionModal');
+                const mapList = document.getElementById('mapList');
+                
+                // Show loading
+                mapList.innerHTML = '<div class="no-maps">Loading saved maps...</div>';
+                modal.style.display = 'block';
+                
+                try {
+                    const response = await fetch('/api/get-saved-maps');
+                    const result = await response.json();
+                    
+                    if (result.status === 'success' && result.maps.length > 0) {
+                        this.displayMapList(result.maps);
+                    } else {
+                        mapList.innerHTML = '<div class="no-maps">No saved maps found. Create and save a map first!</div>';
+                    }
+                } catch (error) {
+                    console.error('Failed to load saved maps:', error);
+                    mapList.innerHTML = '<div class="no-maps">Error loading saved maps.</div>';
+                }
+            }
+            
+            hideLoadMapModal() {
+                document.getElementById('mapSelectionModal').style.display = 'none';
+            }
+            
+            displayMapList(maps) {
+                const mapList = document.getElementById('mapList');
+                mapList.innerHTML = '';
+                
+                maps.forEach(map => {
+                    const mapItem = document.createElement('div');
+                    mapItem.className = 'map-item';
+                    
+                    const createdDate = new Date(map.created_at).toLocaleDateString();
+                    const themeName = this.themes[map.theme]?.name || map.theme;
+                    
+                    mapItem.innerHTML = `
+                        <h3>${map.name}</h3>
+                        <div class="map-preview">Map Preview</div>
+                        <div class="map-details">
+                            <div><strong>Theme:</strong> ${themeName}</div>
+                            <div><strong>Difficulty:</strong> ${map.difficulty}</div>
+                            <div><strong>Size:</strong> ${map.dimensions.width}x${map.dimensions.height}</div>
+                            <div><strong>Obstacles:</strong> ${map.obstacles.length}</div>
+                            <div><strong>Created:</strong> ${createdDate}</div>
+                        </div>
+                        <button class="load-map-btn" onclick="mapGenerator.loadMap('${map.id}')">
+                            📁 Load This Map
+                        </button>
+                    `;
+                    
+                    mapList.appendChild(mapItem);
+                });
+            }
+            
+            async loadMap(mapId) {
+                this.hideLoadMapModal();
+                this.showStatus('Loading map...', 'loading');
+                
+                try {
+                    const response = await fetch(`/api/load-map/${mapId}`);
+                    const result = await response.json();
+                    
+                    if (result.status === 'success') {
+                        this.currentMap = result.map;
+                        this.drawMapPreview(this.currentMap);
+                        this.showMapInfo(this.currentMap);
+                        this.showStatus('Map loaded successfully!', 'success');
+                        
+                        // Enable edit and save buttons
+                        document.getElementById('editBtn').disabled = false;
+                        document.getElementById('saveBtn').disabled = false;
+                        
+                        // Update form fields to match loaded map
+                        document.getElementById('mapName').value = this.currentMap.name;
+                        document.getElementById('difficulty').value = this.currentMap.difficulty;
+                        
+                        // Update size dropdown
+                        const sizeMap = {
+                            '25x20': 'small',
+                            '32x24': 'medium', 
+                            '40x30': 'large'
+                        };
+                        const sizeKey = `${this.currentMap.dimensions.width}x${this.currentMap.dimensions.height}`;
+                        document.getElementById('size').value = sizeMap[sizeKey] || 'medium';
+                        
+                        document.getElementById('complexity').value = this.currentMap.complexity;
+                        
+                        // Update theme selection
+                        this.selectTheme(this.currentMap.theme);
+                        
+                    } else {
+                        this.showStatus(`Error: ${result.message}`, 'error');
+                    }
+                } catch (error) {
+                    console.error('Failed to load map:', error);
+                    this.showStatus('Failed to load map', 'error');
+                }
+            }
+            
+            showStatus(message, type) {
+                const statusDiv = document.getElementById('statusMessage');
+                statusDiv.className = `status-message status-${type}`;
+                
+                if (type === 'loading') {
+                    statusDiv.innerHTML = `<span class="loading-spinner"></span>${message}`;
+                } else {
+                    statusDiv.textContent = message;
+                }
+                
+                if (type !== 'loading') {
+                    setTimeout(() => {
+                        statusDiv.textContent = '';
+                        statusDiv.className = '';
+                    }, 3000);
+                }
+            }
+        }
+        
+        // Initialize the map generator
+        const mapGenerator = new MapGenerator();
+    </script>
+</body>
+</html>

@@ -72,6 +72,11 @@
                     Credits
                 </button>
             </form>
+            <form action="/generator" method="GET">
+                <button type="submit" id="generatorBtn" class="pixel-button bg-[#9b59b6] text-[#2c3e50] py-4 px-6 rounded-md text-xl sm:text-2xl w-full">
+                    🗺️ Map Generator
+                </button>
+            </form>
             
             <!-- Logout Button -->
             {% if username %}
@@ -87,6 +92,11 @@
             
             forms.forEach(form => {
                 form.addEventListener('submit', async (e) => {
+                    // Allow GET requests to proceed normally (like /game and /generator)
+                    if (form.method.toLowerCase() === 'get') {
+                        return; // Let the form submit normally
+                    }
+                    
                     e.preventDefault();
                     try {
                         const response = await fetch(form.action, {

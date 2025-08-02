@@ -4,6 +4,7 @@ from flask_login import LoginManager, UserMixin, login_user, login_required, log
 from werkzeug.security import generate_password_hash, check_password_hash
 import os
 import json
+from modules.map_generator import MapGenerator
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -301,6 +302,224 @@ def get_enemies():
     with open('enemy_data/enemy_data.json', 'r') as f:
         enemy_data = json.load(f)
     return jsonify(enemy_data)
+
+
+# --- Map Generator API Endpoints ---
+# Initialize map generator
+map_generator = MapGenerator()
+
+@app.route('/generator')
+@login_required
+def generator():
+    """Map Generator page"""
+    return render_template('generator.html', username=current_user.username)
+
+@app.route('/api/generate-map', methods=['POST'])
+@login_required
+def generate_map():
+    """Generate a new map with specified parameters"""
+    try:
+        data = request.get_json()
+        
+        difficulty = data.get('difficulty', 'medium')
+        theme = data.get('theme', 'forest')
+        size = data.get('size', 'medium')
+        complexity = data.get('complexity', 'curved')
+        custom_name = data.get('name', None)
+        
+        # Generate the map
+        generated_map = map_generator.generate_map(
+            difficulty=difficulty,
+            theme=theme,
+            size=size,
+            complexity=complexity,
+            custom_name=custom_name
+        )
+        
+        return jsonify({
+            'status': 'success',
+            'map': generated_map
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/save-custom-map', methods=['POST'])
+@login_required
+def save_custom_map():
+    """Save a custom generated map"""
+    try:
+        data = request.get_json()
+        map_data = data.get('map')
+        
+        if not map_data:
+            return jsonify({'status': 'error', 'message': 'No map data provided'}), 400
+        
+        # Load existing maps
+        with open('map_data/maps.json', 'r') as f:
+            maps = json.load(f)
+        
+        # Add the new map
+        maps.append(map_data)
+        
+        # Save back to file
+        with open('map_data/maps.json', 'w') as f:
+            json.dump(maps, f, indent=4)
+        
+        return jsonify({
+            'status': 'success',
+            'message': 'Map saved successfully',
+            'map_id': map_data['id']
+        })
+        
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
+
+@app.route('/api/themes', methods=['GET'])
+def get_themes():
+    """Get available themes for map generation"""
+    return jsonify(map_generator.get_themes())
+
+@app.route('/api/generator-options', methods=['GET'])
+def get_generator_options():
+    """Get all available options for map generation"""
+    return jsonify({
+        'themes': map_generator.get_themes(),
+        'difficulties': map_generator.get_difficulties(),
+        'complexities': map_generator.get_complexities(),
+        'sizes': ['small', 'medium', 'large']
+    })
+
+@app.route('/api/get-saved-maps', methods=['GET'])
+@login_required
+def get_saved_maps():
+    """Get all saved maps for the map loader"""
+    try:
+        with open('map_data/maps.json', 'r') as f:
+            all_maps = json.load(f)
+        
+        # Filter and format maps for the loader
+        saved_maps = []
+        for i, map_data in enumerate(all_maps):
+            # Ensure all required fields exist with defaults
+            map_id = map_data.get('id', i + 1)
+            map_name = map_data.get('name', f'Map {map_id}')
+            map_theme = map_data.get('theme', 'forest')
+            map_difficulty = map_data.get('difficulty', 'medium')
+            
+            # Handle dimensions - some maps might not have this field
+            if 'dimensions' in map_data:
+                dimensions = map_data['dimensions']
+            else:
+                # Calculate dimensions from path data if available
+                max_x = max_y = 0
+                if 'path' in map_data and map_data['path']:
+                    for point in map_data['path']:
+                        max_x = max(max_x, point.get('x', 0))
+                        max_y = max(max_y, point.get('y', 0))
+                if 'start' in map_data:
+                    max_x = max(max_x, map_data['start'].get('x', 0))
+                    max_y = max(max_y, map_data['start'].get('y', 0))
+                
+                dimensions = {
+                    'width': max_x + 5,  # Add some padding
+                    'height': max_y + 5
+                }
+            
+            # Handle obstacles
+            obstacles = map_data.get('obstacles', [])
+            
+            # Add creation timestamp if not present
+            created_at = map_data.get('created_at', f'2024-01-{str(i+1).zfill(2)}T00:00:00Z')
+            
+            saved_maps.append({
+                'id': str(map_id),  # Ensure ID is string for consistency
+                'name': map_name,
+                'theme': map_theme,
+                'difficulty': map_difficulty,
+                'dimensions': dimensions,
+                'obstacles': obstacles,
+                'created_at': created_at
+            })
+        
+        # Sort by creation date (newest first)
+        saved_maps.sort(key=lambda x: x['created_at'], reverse=True)
+        
+        return jsonify({
+            'status': 'success',
+            'maps': saved_maps
+        })
+        
+    except Exception as e:
+        print(f"Error in get_saved_maps: {str(e)}")  # Debug logging
+        return jsonify({
+            'status': 'error',
+            'message': f'Failed to load maps: {str(e)}'
+        }), 500
+
+@app.route('/api/load-map/<map_id>', methods=['GET'])
+@login_required
+def load_map(map_id):
+    """Load a specific map by ID"""
+    try:
+        with open('map_data/maps.json', 'r') as f:
+            all_maps = json.load(f)
+        
+        # Find the map with the specified ID (handle both string and int IDs)
+        target_map = None
+        for map_data in all_maps:
+            # Compare both as strings and as integers to handle mixed ID types
+            current_id = map_data.get('id')
+            if (str(current_id) == str(map_id) or 
+                (isinstance(current_id, int) and current_id == int(map_id)) or
+                (isinstance(current_id, str) and current_id == map_id)):
+                target_map = map_data
+                break
+        
+        if not target_map:
+            return jsonify({
+                'status': 'error',
+                'message': f'Map with ID {map_id} not found'
+            }), 404
+        
+        # Ensure the map has all required fields for the editor
+        if 'theme' not in target_map:
+            target_map['theme'] = 'forest'
+        if 'complexity' not in target_map:
+            target_map['complexity'] = 'curved'
+        if 'dimensions' not in target_map:
+            # Calculate dimensions from path data
+            max_x = max_y = 0
+            if 'path' in target_map and target_map['path']:
+                for point in target_map['path']:
+                    max_x = max(max_x, point.get('x', 0))
+                    max_y = max(max_y, point.get('y', 0))
+            if 'start' in target_map:
+                max_x = max(max_x, target_map['start'].get('x', 0))
+                max_y = max(max_y, target_map['start'].get('y', 0))
+            
+            target_map['dimensions'] = {
+                'width': max_x + 5,
+                'height': max_y + 5
+            }
+        
+        return jsonify({
+            'status': 'success',
+            'map': target_map
+        })
+        
+    except Exception as e:
+        print(f"Error in load_map: {str(e)}")  # Debug logging
+        return jsonify({
+            'status': 'error',
+            'message': f'Failed to load map: {str(e)}'
+        }), 500
 
 
 if __name__ == '__main__':
