@@ -43,6 +43,13 @@
     <!-- Main menu container with pixel art styling -->
     <div class="bg-[#34495e] pixel-border p-6 rounded-lg max-w-xl w-full flex flex-col items-center text-center">
         
+        <!-- User Info -->
+        {% if username %}
+        <div class="text-lg text-[#ecf0f1] mb-4">
+            Welcome, <span class="text-[#f1c40f]">{{ username }}</span>!
+        </div>
+        {% endif %}
+        
         <!-- Game Title -->
         <h1 class="text-4xl sm:text-5xl text-[#f1c40f] mb-8 leading-tight">
             {{game_title}} - Menu
@@ -65,6 +72,13 @@
                     Credits
                 </button>
             </form>
+            
+            <!-- Logout Button -->
+            {% if username %}
+            <a href="/logout" class="pixel-button bg-[#95a5a6] text-[#2c3e50] py-2 px-4 rounded-md text-sm w-full block mt-4">
+                Logout
+            </a>
+            {% endif %}
         </div>
 
     <script>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #2a3d2a;
+            color: white;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .register-container {
+            background: #4a5d4a;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            text-align: center;
+            border: 3px solid #6b8e6b;
+            width: 350px; /* Set a fixed width for better control */
+        }
+        
+        h1 {
+            color: #FFD700;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .subtitle {
+            color: #aaa;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .flashes {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 20px 0;
+        }
+
+        .flashes li {
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .flashes .error {
+            background-color: #ff6b6b;
+            color: #330000;
+            border: 1px solid #c04040;
+        }
+
+        .flashes .success {
+            background-color: #6bff6b;
+            color: #003300;
+            border: 1px solid #40c040;
+        }
+
+        .register-form label {
+            display: block;
+            text-align: left;
+            margin-bottom: 5px;
+            font-size: 16px;
+            color: #FFD700;
+        }
+        
+        .register-form input[type="text"], 
+        .register-form input[type="password"] {
+            padding: 15px;
+            font-size: 18px;
+            margin: 10px 0 20px 0;
+            border: 2px solid #6b8e6b;
+            border-radius: 5px;
+            background: #3a4d3a;
+            color: white;
+            font-family: 'Courier New', monospace;
+            width: 100%; /* Make inputs take full width of container */
+            box-sizing: border-box; /* Include padding and border in the element's total width and height */
+            text-align: center;
+        }
+        
+        .register-form input[type="text"]:focus, 
+        .register-form input[type="password"]:focus {
+            outline: none;
+            border-color: #FFD700;
+            background: #4a5d4a;
+        }
+        
+        .register-form input[type="submit"] {
+            padding: 15px 30px;
+            font-size: 18px;
+            margin: 20px 0;
+            background: #5a7d5a;
+            border: 2px solid #4a6d4a;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            transition: background 0.3s;
+            width: 100%;
+        }
+        
+        .register-form input[type="submit"]:hover {
+            background: #6a8d6a;
+        }
+
+        .login-link a {
+            color: #FFD700;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+        
+        .login-link a:hover {
+            color: white;
+            text-decoration: underline;
+        }
+
+    </style>
+</head>
+<body>
+    <div class="register-container">
+        <h1>Register</h1>
+        <p class="subtitle">Join the game and defend your tower!</p>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="flashes">
+                    {% for category, message in messages %}
+                        <li class="{{ category }}">{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+        
+        <form class="register-form" action="{{ url_for('register') }}" method="post">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+            
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required>
+            
+            <input type="submit" value="Register">
+        </form>
+        
+        <p class="login-link">Already have an account? <a href="{{ url_for('login') }}">Log in here</a>.</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,68 @@
+{
+    "normal": {
+        "name": "Basic Bug",
+        "baseHp": 100,
+        "baseSpeed": 1,
+        "baseReward": 10,
+        "sprite": "normal_bug",
+        "description": "A common programming bug, slow but steady",
+        "resistance": "none",
+        "attributes": {},
+        "scaling": {
+            "hp": 1.2,
+            "speed": 1.0,
+            "reward": 1.1
+        }
+    },
+    "fast": {
+        "name": "Speed Exception",
+        "baseHp": 60,
+        "baseSpeed": 2,
+        "baseReward": 15,
+        "sprite": "fast_exception",
+        "description": "Quick but fragile runtime exception",
+        "resistance": "none",
+        "attributes": {},
+        "scaling": {
+            "hp": 1.1,
+            "speed": 1.15,
+            "reward": 1.2
+        }
+    },
+    "tank": {
+        "name": "Memory Leak",
+        "baseHp": 300,
+        "baseSpeed": 0.5,
+        "baseReward": 25,
+        "sprite": "memory_leak",
+        "description": "Slow but very hard to eliminate",
+        "resistance": "basic",
+        "attributes": {
+            "armor": 0.5,
+            "regeneration": 0.1
+        },
+        "scaling": {
+            "hp": 1.4,
+            "speed": 1.0,
+            "reward": 1.3
+        }
+    },
+    "boss": {
+        "name": "Kernel Panic",
+        "baseHp": 1000,
+        "baseSpeed": 0.3,
+        "baseReward": 100,
+        "sprite": "kernel_panic",
+        "description": "A devastating system-level threat",
+        "resistance": "all",
+        "attributes": {
+            "armor": 0.8,
+            "regeneration": 0.2
+        },
+        "scaling": {
+            "hp": 2.0,
+            "speed": 1.1,
+            "reward": 1.5
+        }
+    }
+}

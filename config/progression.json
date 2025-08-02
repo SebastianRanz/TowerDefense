@@ -1,0 +1,33 @@
+{
+    "levels": [
+        {
+            "level": 1,
+            "map": "holy_c_path",
+            "xp_required": 0,
+            "xp_reward": 100,
+            "gold_reward": 200,
+            "available_towers": ["basic"],
+            "enemies": {
+                "normal": {"count": 10, "hp": 100, "speed": 1, "reward": 10},
+                "fast": {"count": 5, "hp": 50, "speed": 2, "reward": 15}
+            }
+        },
+        {
+            "level": 2,
+            "map": "holy_c_path",
+            "xp_required": 100,
+            "xp_reward": 150,
+            "gold_reward": 300,
+            "available_towers": ["basic", "holy_c"],
+            "enemies": {
+                "normal": {"count": 15, "hp": 120, "speed": 1, "reward": 12},
+                "fast": {"count": 8, "hp": 60, "speed": 2, "reward": 18},
+                "tank": {"count": 3, "hp": 300, "speed": 0.5, "reward": 25}
+            }
+        }
+    ],
+    "tower_unlocks": {
+        "basic": {"level_required": 1, "xp_required": 0},
+        "holy_c": {"level_required": 2, "xp_required": 100}
+    }
+}

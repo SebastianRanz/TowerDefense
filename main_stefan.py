@@ -1,79 +1,301 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, redirect, url_for, flash
+from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
+from werkzeug.security import generate_password_hash, check_password_hash
+import os
+import json
 
-
+# Initialize Flask app
 app = Flask(__name__)
 
+# --- Configuration for a secure app and database ---
+# TODO: Change this secret key to a long, random string in production.
+app.config['SECRET_KEY'] = 'your-very-secret-key-that-you-should-change'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
-gamestate = {
-    'player_name': 'Player1',
-    'selected_map': 'holy_c_path',
-}
+# Initialize database and login manager
+db = SQLAlchemy(app)
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
 
+# ...existing code...
+class User(UserMixin, db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+
+    # Progression fields
+    level = db.Column(db.Integer, nullable=False, default=1)
+    xp = db.Column(db.Integer, nullable=False, default=0)
+    selected_map = db.Column(db.String(100), nullable=False, default='holy_c_path')
+    gold = db.Column(db.Integer, nullable=False, default=500)
+    lives = db.Column(db.Integer, nullable=False, default=20)
+    wave = db.Column(db.Integer, nullable=False, default=1)
+    score = db.Column(db.Integer, nullable=False, default=0)
+    unlocked_towers = db.Column(db.String(500), nullable=False, default='["basic"]')  # JSON string of tower IDs
+    
+    def add_xp(self, amount):
+        """Add XP and handle level ups"""
+        self.xp += amount
+        with open('game_data/progression.json', 'r') as f:
+            progression = json.load(f)
+        
+        # Check for level up
+        next_level = self.level + 1
+        next_level_data = next((x for x in progression['levels'] if x['level'] == next_level), None)
+        
+        if next_level_data and self.xp >= next_level_data['xp_required']:
+            self.level = next_level
+            self._update_unlocked_towers(progression['tower_unlocks'])
+            return True
+        return False
+    
+    def _update_unlocked_towers(self, tower_unlocks):
+        """Update available towers based on level and XP"""
+        current_towers = json.loads(self.unlocked_towers)
+        for tower_id, requirements in tower_unlocks.items():
+            if (self.level >= requirements['level_required'] and 
+                self.xp >= requirements['xp_required'] and 
+                tower_id not in current_towers):
+                current_towers.append(tower_id)
+        self.unlocked_towers = json.dumps(current_towers)
+
+    # Method to set a hashed password
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    # Method to check a password
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+
+# --- CORRECTED: User loader callback for Flask-Login (uses modern SQLAlchemy) ---
+@login_manager.user_loader
+def load_user(user_id):
+    """
+    This function is required by Flask-Login. It loads a user from the
+    database by their ID. The modern SQLAlchemy way is to use db.session.get().
+    """
+    return db.session.get(User, int(user_id))
+
+
+# --- Routes for user authentication ---
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        user = User.query.filter_by(username=username).first()
+        
+        if user and user.check_password(password):
+            login_user(user)
+            # Redirect to the page the user was trying to access
+            next_page = request.args.get('next')
+            return redirect(next_page or url_for('index'))
+        else:
+            flash('Invalid username or password', 'error')
+            
+    return render_template('login.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        user = User.query.filter_by(username=username).first()
+        if user:
+            flash('Username already exists. Please choose a different one.', 'error')
+            return redirect(url_for('register'))
+        
+        new_user = User(username=username)
+        new_user.set_password(password)
+        
+        db.session.add(new_user)
+        db.session.commit()
+        
+        flash('Registration successful! You can now log in.', 'success')
+        return redirect(url_for('login'))
+
+    return render_template('register.html')
+
+@app.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('index'))
+
+
+# --- Main application routes, now protected with @login_required ---
 @app.route('/')
+@login_required
 def index():
-    return render_template('index_stefan.html', game_title="Towerdefender")
+    return render_template('index_stefan.html', game_title="Towerdefender", username=current_user.username)
 
 @app.route('/game', methods=['GET', 'POST'])
+@login_required
 def game():
     if request.method == 'POST':
+        # This route is used for initial page load or a redirect, no JSON data here
         return jsonify({'redirect': '/game'})
+    
+    # Use current_user to get the logged-in user's progression data
+    gamestate = {
+        'player_name': current_user.username,
+        'selected_map': current_user.selected_map,
+        'gold': current_user.gold,
+        'lives': current_user.lives,
+        'wave': current_user.wave,
+        'score': current_user.score
+    }
     return render_template('game.html', gamestate=gamestate)
 
 @app.route('/options', methods=['POST'])
+@login_required
 def options():
     return jsonify({'redirect': '/options'})
 
 @app.route('/credits', methods=['POST'])
+@login_required
 def credits():
     return jsonify({'redirect': '/credits'})
 
 
+# --- API endpoints, now linked to the database ---
 @app.route('/api/maps', methods=['GET'])
 def get_maps():
+    """Returns the map data from a JSON file."""
     return send_file('map_data/maps.json')
 
 @app.route('/api/player', methods=['GET', 'POST'])
+@login_required
 def player_data():
+    """
+    Handles GET/POST requests for the current user's player data,
+    loading and saving directly to the database.
+    """
     if request.method == 'GET':
         return jsonify({
-            "health": 100, 
-            "gold": 500,
-            "lives": 20,
-            "current_wave": 1,
-            "score": 0
+            "health": 100, # This is a temporary value, not stored
+            "gold": current_user.gold,
+            "lives": current_user.lives,
+            "current_wave": current_user.wave,
+            "score": current_user.score,
+            "username": current_user.username
         })
     elif request.method == 'POST':
-        # Handle player data updates
         data = request.get_json()
-        # In a real app, you'd save this to a database
+        
+        # Update user attributes from the POST data
+        current_user.gold = data.get('gold', current_user.gold)
+        current_user.lives = data.get('lives', current_user.lives)
+        current_user.wave = data.get('current_wave', current_user.wave)
+        current_user.score = data.get('score', current_user.score)
+        
+        db.session.commit()
         return jsonify({"status": "Updated", "data": data})
 
+
 @app.route('/api/gamestate', methods=['GET', 'POST'])
+@login_required
 def gamestate_api():
-    global gamestate
     if request.method == 'GET':
-        return jsonify(gamestate)
+        gamestate_data = {
+            'player_name': current_user.username,
+            'selected_map': current_user.selected_map,
+            'gold': current_user.gold,
+            'lives': current_user.lives,
+            'wave': current_user.wave,
+            'score': current_user.score,
+            'level': current_user.level,
+            'xp': current_user.xp,
+            'unlocked_towers': json.loads(current_user.unlocked_towers)
+        }
+        return jsonify(gamestate_data)
     elif request.method == 'POST':
         data = request.get_json()
+        
+        # Update user attributes from the POST data
         if 'selected_map' in data:
-            gamestate['selected_map'] = data['selected_map']
-        if 'player_name' in data:
-            gamestate['player_name'] = data['player_name']
-        return jsonify(gamestate)
+            current_user.selected_map = data['selected_map']
+        
+        # Also update other fields that might be sent in the gamestate post
+        current_user.gold = data.get('gold', current_user.gold)
+        current_user.lives = data.get('lives', current_user.lives)
+        current_user.wave = data.get('wave', current_user.wave)
+        current_user.score = data.get('score', current_user.score)
+
+        db.session.commit()
+        return jsonify({
+            "status": "Updated", 
+            "gamestate": {
+                'player_name': current_user.username,
+                'selected_map': current_user.selected_map
+            }
+        })
+
+
+@app.route('/api/progression', methods=['GET', 'POST'])
+@login_required
+def progression():
+    """Handle progression-related requests"""
+    if request.method == 'GET':
+        # Load progression template
+        with open('game_data/progression.json', 'r') as f:
+            progression_data = json.load(f)
+        
+        # Get current level data
+        current_level_data = next(
+            (x for x in progression_data['levels'] if x['level'] == current_user.level), 
+            None
+        )
+        
+        return jsonify({
+            'current_level': current_user.level,
+            'current_xp': current_user.xp,
+            'unlocked_towers': json.loads(current_user.unlocked_towers),
+            'level_data': current_level_data
+        })
+    
+    elif request.method == 'POST':
+        data = request.get_json()
+        
+        # Handle XP gain
+        if 'xp_gained' in data:
+            level_up = current_user.add_xp(data['xp_gained'])
+            
+            # Save changes
+            db.session.commit()
+            
+            return jsonify({
+                'status': 'success',
+                'level_up': level_up,
+                'new_level': current_user.level,
+                'new_xp': current_user.xp,
+                'unlocked_towers': json.loads(current_user.unlocked_towers)
+            })
+
+        return jsonify({'status': 'error', 'message': 'Invalid data'})
+
 
 
 @app.route('/api/towers', methods=['GET'])
 def get_towers():
-    import json
-    # Load the tower data and format it properly
+    """Returns the tower data from a JSON file."""
     with open('tower_data/tower_data.json', 'r') as f:
         tower_data = json.load(f)
-    
-    # The current format is already correct, just return it
     return jsonify(tower_data)
 
 
-
-
 if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
